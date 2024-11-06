@@ -10,15 +10,15 @@ NUM_OF_YEARS = 10
 
 
 def fetch_historic_data_bs4(ticker):
-    master_url = f"https://www.mse.mk/mk/stats/symbolhistory/{ticker}"
+    master_url = f"https://www.mse.mk/en/stats/symbolhistory/{ticker}"
     historic_data = []
-    date_to = datetime.now()
+    to_date = datetime.now()
 
     for _ in range(NUM_OF_YEARS):
-        date_from = date_to - timedelta(days=364)
+        from_date = to_date - timedelta(days=364)
         params = {
-            "FromDate": date_from.strftime("%d.%m.%Y"),
-            "ToDate": date_to.strftime("%d.%m.%Y"),
+            "FromDate": from_date.strftime("%m/%d/%Y"),
+            "ToDate": to_date.strftime("%m/%m/%Y"),
         }
         response = requests.get(master_url, params=params)
         html = BeautifulSoup(response.text, 'html.parser')
@@ -30,7 +30,7 @@ def fetch_historic_data_bs4(ticker):
                 data_row = [cell.text.strip() for cell in row.find_all('td')]
                 historic_data.append(data_row)
 
-        date_to = date_from
+        date_to = to_date
     return historic_data
 
 
