@@ -10,7 +10,7 @@ NUM_OF_YEARS = 10
 
 
 def fetch_historic_data_bs4(ticker):
-    master_url = f"https://www.mse.mk/en/stats/symbolhistory/{ticker}"
+    master_url = f"https://www.mse.mk/mk/stats/symbolhistory/{ticker}"
     historic_data = []
     to_date = datetime.now()
 
