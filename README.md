@@ -11,17 +11,17 @@ SpotterMK is a project developed to analyze historical stock data from the Maced
 
 ## Functional Requirements
 1. Automate the download of daily stock data from the Macedonian Stock Exchange for the past 10 years.
-2. Filter and structure the extracted data to retain key information such as issuer name, stock prices, trading volume, and date.
+2. Filter and structure the extracted data to retain key information such as date, last transaction price, maximum price, minimum price, average price, percentage change, quantity, trading volume in BEST (denars), and total trading volume (denars).
 3. Store processed data in CSV files or a database for future use.
-4. (Planned) Develop a user interface to initiate and monitor data processing tasks in the next phases of the project.
-5. Implement basic error handling for scenarios involving missing or incorrect data formats.
+4. Implement basic error handling for scenarios involving missing data formats.
+5. (Planned) Design and implement a user interface to facilitate and monitor data processing tasks as part of the upcoming project phases, contributing to the development of a comprehensive web application integrated with the stock exchange. 
 
 ## Non-functional Requirements
 1. The processing pipeline should handle large datasets and complete tasks efficiently.
 2. The architecture should support future expansion to accommodate additional data sources or analysis features.
 3. Ensure data integrity throughout the ETL process.
-4. (Planned) A simple and intuitive user interface for ease of use.
-5. Modular code structure; current focus is on creating clean, maintainable code for easy future updates.
+4. Modular code structure; current focus is on creating clean, maintainable code for easy future updates.
+5. (Planned) A simple and intuitive user interface for ease of use.
 
 ## User Scenarios
 ### Scenario 1: Data Enthusiast Downloading Data
