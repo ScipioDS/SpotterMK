@@ -1,5 +1,4 @@
-# DAS Project @ FSCE 2024/25
-**SpotterMK - Macedonian Stock Exchange Analysis Project**
+# SpotterMK - Macedonian Stock Exchange Analysis Project
 
 ## Project Overview
 SpotterMK is a project developed to analyze historical stock data from the Macedonian Stock Exchange. The project leverages the Pipe and Filter architecture to automate the extraction, transformation, and loading (ETL) of daily stock data for comprehensive analysis. The system processes at least the last 10 years of stock data on a daily basis while ensuring proper formatting for further analysis.
