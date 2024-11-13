@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
         df1 = pd.DataFrame(update_historic_data_bs4("kmb", sdate),
                            columns=["Date", "LastTransaction", "Max", "Min", "Avg", "%Prom", "Amount", "BEST", "Total"])
-        df2 = pd.read_csv("kmb.csv", encoding="utf")
+        df2 = pd.read_csv(f"{code}.csv", encoding="utf")
         df3 = pd.concat([df1, df2], ignore_index=True, sort=False)
-        df3.to_csv("kmb.csv", index=False)
+        df3.to_csv(f"{code}.csv", index=False)
 
