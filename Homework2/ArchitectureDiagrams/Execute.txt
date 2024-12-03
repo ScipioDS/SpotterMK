@@ -1,0 +1,38 @@
+WebApp UI
+	Display companies and their prices on graph
+	Display prediction about the company stock price for next month
+Controller
+	Central controller for getting all requests
+	Dispatching the request to appropriate controller
+Login Controller
+	Processing requests for logging
+Register Controller
+	Processing requests for registering
+Search Controller
+	Processing requests for companies
+Register Service
+	Business logic for registering
+Login Service
+	Business logic for logging
+Search Service
+	Bussiness logic for companies
+Stock Processing Model
+	Predicts company stock price
+User Repository
+	Store data in database for users
+Company Repository
+	Retrive/update data from/to database for companies
+Scrapers
+	Retrieve/update data from/to database for historical data for companies
+
+SpotterUI calls on the controllers thru HTTP.
+
+The controllers call on the services thru internal methods.
+
+The services communicate with the database.
+
+The TimeSystem alerts the scrapers and the processing model when it's time to update the values in the database.
+
+The scrapers send requests to the MSE website and parse the data, then send it to the database.
+
+The processing model gathers the data from the database, generates positive or negative evaluations of the stocks and sends them to the database.
