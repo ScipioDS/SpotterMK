@@ -117,7 +117,7 @@ public class CompanyController {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(
                     "C:/Users/Skipio/AppData/Local/Programs/Python/Python312/python.exe",
-                    "test.py",
+                    "sentiment_analysis.py",
                     "kmb"
             );
 
