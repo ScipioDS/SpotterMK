@@ -116,9 +116,9 @@ public class CompanyController {
     public String runPythonScript() {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(
-                    "C:/Users/ncvet/AppData/Local/Programs/Python/Python313/python.exe",
+                    "C:/Users/Skipio/AppData/Local/Programs/Python/Python312/python.exe",
                     "test.py",
-                    saved_company
+                    "kmb"
             );
 
             processBuilder.redirectErrorStream(true);
@@ -129,7 +129,8 @@ public class CompanyController {
             StringBuilder output = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
+                if(line.contains("NOT FOUND") || line.contains("BUY") || line.contains("SELL"))
+                    output.append(line).append("\n");
             }
 
 
