@@ -1,16 +1,20 @@
 package com.example.project1.service;
 
+import com.example.project1.controller.CompanyController;
 import com.example.project1.entity.HistoricalDataEntity;
 import com.example.project1.repository.HistoricalDataRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +26,7 @@ public class PricePredictionService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final HistoricalDataRepository historicalDataRepository;
+    private static final Logger logger = LoggerFactory.getLogger(PricePredictionService.class);
 
     private final String predictionApiUrl = "http://127.0.0.1:8000/predict-next-month-price/";
 
@@ -29,9 +34,14 @@ public class PricePredictionService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        List<HistoricalDataEntity> data = historicalDataRepository.findByCompanyIdAndDateBetween(companyId, LocalDate.now().minusMonths(1), LocalDate.now());;
+        //List<HistoricalDataEntity> data = historicalDataRepository.findByCompanyIdAndDateBetween(companyId, LocalDate.now().minusMonths(3), LocalDate.now());
+        // Fetch the last 30 entries
+        Pageable pageable = PageRequest.of(0, 100); // Page 0, 30 entries
+        List<HistoricalDataEntity> data = historicalDataRepository.findTop30ByCompanyIdOrderByDateDesc(companyId, pageable);
 
         Map<String, Object> requestBody = Map.of("data", mapToRequestData(data));
+        logger.info("Prediction request payload: {}", requestBody);
+        // Send the payload to the prediction service (use your existing API call)
 
         HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
 

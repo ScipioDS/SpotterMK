@@ -51,7 +51,7 @@ public class DataAvailabilityCheckFilter implements Filter<List<CompanyEntity>> 
         return companies;
     }
 
-    private void addHistoricalData(CompanyEntity company, LocalDate fromDate, LocalDate toDate) throws IOException {
+    public void addHistoricalData(CompanyEntity company, LocalDate fromDate, LocalDate toDate) throws IOException {
         Connection.Response response = Jsoup.connect(HISTORICAL_DATA_URL + company.getCompanyCode())
                 .data("FromDate", fromDate.toString())
                 .data("ToDate", toDate.toString())

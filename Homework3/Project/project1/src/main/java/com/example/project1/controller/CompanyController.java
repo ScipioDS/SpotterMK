@@ -3,17 +3,14 @@ package com.example.project1.controller;
 import com.example.project1.entity.CompanyEntity;
 import com.example.project1.entity.HistoricalDataEntity;
 import com.example.project1.service.CompanyService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import com.example.project1.service.PricePredictionService;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -30,15 +28,14 @@ public class CompanyController {
 
     private final CompanyService companyService;
     private static final Logger logger = LoggerFactory.getLogger(CompanyController.class);
-    String saved_company="";
+    private final PricePredictionService pricePredictionService;
+    private String saved_company = "";
 
-    @GetMapping("/home")
+    @GetMapping("/")
     public String getIndexPage(Model model) {
         logger.info("Rendering index page with company list.");
-        List<CompanyEntity> companyEntityList= new ArrayList<>();
-        companyEntityList.add(new CompanyEntity("adin"));
-        model.addAttribute("companies", companyEntityList);
-        return "select_and_predict";
+        model.addAttribute("companies", companyService.findAll());
+        return "stock_page";
     }
 
     @GetMapping("/company")
@@ -48,22 +45,16 @@ public class CompanyController {
         try {
             logger.info("Fetching data for company ID: {}", companyId);
             CompanyEntity company = companyService.findById(companyId);
-            String saved_company=company.getCompanyCode();
-            if (company == null) {
-                logger.warn("Company not found for ID: {}", companyId);
-                throw new Exception("Company not found for ID: " + companyId);
-            }
+            saved_company=company.getCompanyCode();
 
             response.put("companyCode", company.getCompanyCode());
 
-            // Handle lastUpdated
             if (company.getLastUpdated() != null) {
                 response.put("lastUpdated", company.getLastUpdated().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
             } else {
                 response.put("lastUpdated", "N/A");
             }
 
-            // Add historical data
             List<String> dates = new ArrayList<>();
             List<Double> prices = new ArrayList<>();
             for (HistoricalDataEntity historicalData : company.getHistoricalData()) {
@@ -95,60 +86,132 @@ public class CompanyController {
                 throw new Exception("Company not found for prediction, ID: " + companyId);
             }
 
-            // Simulate prediction logic (replace with actual logic)
-            double predictedPrice = company.getHistoricalData()
-                    .stream()
-                    .mapToDouble(HistoricalDataEntity::getLastTransactionPrice)
-                    .average()
-                    .orElse(0.0);
+            List<HistoricalDataEntity> historicalData = company.getHistoricalData();
+            logger.info("Historical data size for company ID {}: {}", companyId, historicalData.size());
+
+            List<Double> prices = historicalData.stream()
+                    .map(HistoricalDataEntity::getAveragePrice)
+                    .collect(Collectors.toList());
+            logger.info("Prepared data for prediction: size={}", prices.size());
+
+            Double predictedPrice = pricePredictionService.predictNextMonth(companyId);
+
+            if (predictedPrice == null) {
+                throw new Exception("Prediction failed or no result returned for company ID: " + companyId);
+            }
 
             response.put("predictedPrice", predictedPrice);
             response.put("status", "success");
         } catch (Exception e) {
-            logger.error("Error predicting price: {}", e.getMessage());
+            logger.error("Error predicting price for company ID {}: {}", companyId, e.getMessage());
             response.put("status", "error");
-            response.put("message", "Not enough data for prediction.");
+            response.put("message", "Prediction failed. " + e.getMessage());
         }
         return response;
     }
+
     @PostMapping("/runPythonScript")
     @ResponseBody
-    public String runPythonScript() {
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    "C:/Users/Skipio/AppData/Local/Programs/Python/Python312/python.exe",
-                    "sentiment_analysis.py",
-                    "kmb"
-            );
+    public String runPythonScript(@RequestBody AnalysisRequest request) throws IOException, InterruptedException {
+        String analysisType = request.getAnalysisType();
+        String timeframe = request.getTimeframe();
+        String output = "";
 
-            processBuilder.redirectErrorStream(true);
-            Process process = processBuilder.start();
-
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if(line.contains("NOT FOUND") || line.contains("BUY") || line.contains("SELL"))
-                    output.append(line).append("\n");
-            }
-
-
-            int exitCode = process.waitFor();
-
-
-            if (exitCode == 0) {
-                System.out.println("Python script executed successfully.");
-            } else {
-                System.out.println("Python script failed with exit code " + exitCode);
-            }
-
-            return output.toString();
-
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-            return "Error running the Python script: " + e.getMessage();
+        if ("technical".equals(analysisType)) {
+            output = runTechnicalAnalysis(timeframe);
+        } else {
+            output = runFundametanlAnalysis();
         }
 
+        return output;
+    }
+
+    public String runTechnicalAnalysis(String timeFrame) throws IOException, InterruptedException {
+        if ("1_day".equals(timeFrame)) {
+            timeFrame = "1";
+        } else if ("1_week".equals(timeFrame)) {
+            timeFrame = "7";
+        } else if ("1_month".equals(timeFrame)) {
+            timeFrame = "30";
+        }
+
+
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "C:\\Users\\User\\anaconda3\\python.exe",
+                "C:\\Users\\User\\Desktop\\Project - Copy\\project1\\scripts\\technical_analysis.py",
+                saved_company,
+                timeFrame
+        );
+
+        processBuilder.redirectErrorStream(true);
+        Process process = processBuilder.start();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        StringBuilder output = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            output.append(line).append("\n");
+        }
+
+        int exitCode = process.waitFor();
+
+        if (exitCode == 0) {
+            logger.info("Python script executed successfully.");
+        } else {
+            logger.error("Python script failed with exit code {}", exitCode);
+        }
+
+        return output.toString();
+    }
+    public String runFundametanlAnalysis() throws IOException, InterruptedException {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "C:\\Users\\User\\anaconda3\\python.exe",
+                    "C:\\Users\\User\\Desktop\\Project - Copy\\project1\\scripts\\sentiment_analysis.py",
+                    saved_company.toLowerCase()
+        );
+
+        processBuilder.redirectErrorStream(true);
+        Process process = processBuilder.start();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        StringBuilder output = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if(line.contains("NOT FOUND") || line.contains("BUY") || line.contains("SELL"))
+                output.append(line).append("\n");
+        }
+
+        int exitCode = process.waitFor();
+
+        if (exitCode == 0) {
+            logger.info("Python script executed successfully.");
+        } else {
+            logger.error("Python script failed with exit code {}", exitCode);
+        }
+
+        return output.toString();
+    }
+
+    public static class AnalysisRequest {
+        private String analysisType;
+        @JsonProperty("timeframe")
+        private String timeframe;
+
+        // Getters and setters
+        public String getAnalysisType() {
+            return analysisType;
+        }
+
+        public void setAnalysisType(String analysisType) {
+            this.analysisType = analysisType;
+        }
+
+        public String getTimeframe() {
+            return timeframe;
+        }
+
+        public void setTimeframe(String timeframe) {
+            this.timeframe = timeframe;
+        }
     }
 }

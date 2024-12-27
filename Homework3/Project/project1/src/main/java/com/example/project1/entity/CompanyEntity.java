@@ -3,6 +3,7 @@ package com.example.project1.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,6 +25,7 @@ public class CompanyEntity {
     private LocalDate lastUpdated;
 
     @OneToMany(mappedBy = "company", fetch = FetchType.EAGER)
+    @ToString.Exclude
     private List<HistoricalDataEntity> historicalData;
 
     public CompanyEntity(String companyCode) {

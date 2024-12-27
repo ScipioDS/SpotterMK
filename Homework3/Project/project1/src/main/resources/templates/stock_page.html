@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpotterMK - Stocks</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .chart-container {
+            max-width: 90%;
+            height: 420px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: auto 20px;
+        }
+        .predict-button-container {
+            display: flex;
+            margin-top: 1rem;
+            padding-left: 17rem;
+            justify-content: flex-start;
+        }
+        .card {
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .card-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            width: 100%;
+        }
+        #card2{
+            min-height: 700px;
+            min-width: 1600px;
+        }
+        .prediction-message {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding-right: 2rem;
+        }
+        .prediction-message.success {
+            color: #28a745;
+        }
+        .prediction-message.error {
+            color: #dc3545;
+        }
+        .content-container {
+            display: flex;
+            align-items: flex-start;
+        }
+        .chart-block {
+            flex: 1;
+        }
+        .button-block {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .button-block button {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .button-block pre {
+            width: 100%;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        #runButton {
+            padding: 5px 10px;
+            width: auto;
+            height: auto;
+        }
+        #foot {
+            margin-top: 60px;
+            border-top: lightgray solid 1px;
+            width: 95%;
+            padding-top: 20px;
+        }
+        #company-title{
+            margin-left: 265px;
+        }
+        #company-updated {
+            margin-left: 295px;
+        }
+    </style>
+</head>
+<body>
+<div class="container text-center mt-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <img src="" alt="SpotterMK Logo">
+        <div>
+            <a href="#" class="btn btn-link text-dark fw-bold text-decoration-none">Explore Stocks</a>
+            <a href="#" class="btn btn-link text-dark fw-bold text-decoration-none">About</a>
+            <a href="#" class="btn btn-link text-dark fw-bold text-decoration-none">News</a>
+            <a href="#" class="btn btn-dark">Log In</a>
+        </div>
+    </div>
+
+    <h4 class="h1 text-center">Select a Ticker</h4>
+    <div class="card mx-auto p-4 shadow-lg" style="width: 400px;">
+        <form id="company-form">
+            <select id="companyId" class="form-select mb-3" required>
+                <option value="" disabled selected>Select a ticker</option>
+                <option th:each="company : ${companies}" th:value="${company.id}" th:text="${company.companyCode}"></option>
+            </select>
+            <button type="submit" class="btn btn-dark w-100">Submit</button>
+        </form>
+    </div>
+
+    <div id="error-message" class="alert alert-danger text-center d-none">
+        Error fetching data. Please try again.
+    </div>
+
+    <div class="card-container mt-5">
+        <div class="card shadow-sm h-100 mt-5" id="card2">
+            <h4 id="company-title" class="text-start">Ticker - Price Trend</h4>
+            <p id="company-updated" class="text-muted text-start">Last Updated: N/A</p>
+            <div class="content-container">
+                <div class="chart-block">
+                    <div class="chart-container">
+                        <canvas id="chart"></canvas>
+                    </div>
+                    <div class="predict-button-container">
+                        <button id="predict-button" class="btn btn-dark mt-3">Predict Next Month Price</button>
+                    </div>
+                    <p id="prediction-message" class="mt-3 prediction-message"></p>
+                </div>
+                <div class="button-block">
+                    <button id="runButton" class="btn btn-dark">Run Python Script</button>
+                    <select id="analysisType" name="analysisType" class="form-select mt-3" aria-label="Select Analysis Type">
+                        <option value="" disabled selected>Select Analysis Type</option>
+                        <option value="technical">Technical Analysis</option>
+                        <option value="fundamental">Fundamental Analysis</option>
+                    </select>
+                    <select id="timeframe" name="timeframe" class="form-select mt-3 d-none" aria-label="Select Timeframe">
+                        <option value="" disabled selected>Select Timeframe</option>
+                        <option value="1_day">1 Day</option>
+                        <option value="1_week">1 Week</option>
+                        <option value="1_month">1 Month</option>
+                    </select>
+                    <pre id="output" class="mt-3"></pre>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-column justify-content-center align-items-center" id="foot">
+        <div class="d-flex flex-row w-50 justify-content-around">
+            <a href="https://github.com/ScipioDS/SpotterMK" style="color: black">GitHub</a>
+        </div>
+        <p class="text-muted">&copy; Copyright SpotterMK 2024</p>
+    </div>
+</div>
+<script>
+    function initializeChart() {
+        const ctx = document.getElementById('chart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Price',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            displayFormats: { day: 'dd-MM-yyyy' }
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 50,
+                            font: { size: 9 },
+                            maxRotation: 45,
+                            minRotation: 30
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time',
+                            font: { size: 14 }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 12 }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Price',
+                            font: { size: 14 }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: { size: 14 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initializeChart();
+    });
+
+    document.getElementById('company-form').addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        document.getElementById('prediction-message').textContent = '';
+        document.getElementById('prediction-message').className = 'mt-3 prediction-message';
+        document.getElementById('output').textContent = '';
+
+        const errorMessage = document.getElementById('error-message');
+        errorMessage.classList.add('d-none');
+
+        const companyId = document.getElementById('companyId').value;
+
+        fetch(`/company?companyId=${companyId}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Failed to fetch company data.');
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'error') throw new Error(data.message);
+
+                document.getElementById('company-title').textContent = `${data.companyCode} - Price Trend`;
+                document.getElementById('company-updated').textContent = `Last Updated: ${data.lastUpdated}`;
+                updateChart(data.dates, data.prices);
+            })
+            .catch(err => {
+                errorMessage.textContent = err.message;
+                errorMessage.classList.remove('d-none');
+            });
+    });
+
+    document.getElementById('predict-button').addEventListener('click', function () {
+        const companyId = document.getElementById('companyId').value;
+
+        const predictionMessage = document.getElementById('prediction-message');
+
+        predictionMessage.textContent = '';
+        predictionMessage.classList.remove('success', 'error');
+
+        if (!companyId) {
+            console.error('Company ID is not selected.');
+            predictionMessage.textContent = 'Please select a company.';
+            predictionMessage.classList.add('error');
+            return;
+        }
+
+        console.log('Fetching prediction for company ID:', companyId);
+
+        fetch(`/predict?companyId=${companyId}`)
+            .then(response => {
+                console.log('API Response Status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch prediction. Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Full API Response:', data);
+                if (!data.predictedPrice) {
+                    console.error('Response is empty or does not contain predictedPrice:', data);
+                    throw new Error('Predicted price is undefined in the API response.');
+                }
+
+                predictionMessage.textContent = `Next Price: $${data.predictedPrice.toFixed(2)}`;
+                predictionMessage.classList.add('success');
+                predictionMessage.classList.remove('error');
+            })
+            .catch(error => {
+                console.error('Error predicting price:', error);
+                predictionMessage.textContent = 'An error occurred while predicting the price.';
+                predictionMessage.classList.add('error');
+                predictionMessage.classList.remove('success');
+            });
+    });
+
+    function sortData(dates, prices) {
+        const combinedData = dates.map((date, index) => ({
+            date: new Date(date),
+            price: prices[index]
+        }));
+
+        combinedData.sort((a, b) => a.date - b.date);
+
+        const sortedDates = combinedData.map(item => item.date.toISOString().split('T')[0]);
+        const sortedPrices = combinedData.map(item => item.price);
+
+        return { sortedDates, sortedPrices };
+    }
+
+    let chartInstance;
+    function updateChart(dates, prices) {
+        const ctx = document.getElementById('chart').getContext('2d');
+        const { sortedDates, sortedPrices } = sortData(dates, prices);
+        if (chartInstance) {
+            chartInstance.destroy();
+            chartInstance = null;
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: sortedDates,
+                datasets: [{
+                    label: 'Price',
+                    data: sortedPrices,
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            displayFormats: { day: 'dd-MM-yyyy' }
+                        },
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 50,
+                            font: { size: 9 },
+                            maxRotation: 45,
+                            minRotation: 30
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time',
+                            font: { size: 14 }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 12 }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Price',
+                            font: { size: 14 }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: { size: 14 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return `Price: $${context.raw.toFixed(2)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    document.getElementById('runButton').onclick = function() {
+        const companyId = document.getElementById('companyId').value;
+        const analysisType = document.getElementById('analysisType').value;
+        const selectedTimeframe = document.getElementById("timeframe").value;
+
+        // Check if a ticker is selected
+        if (!companyId) {
+            document.getElementById('output').textContent = 'Please select a ticker before running the script.';
+            return;
+        }
+
+        // Check if an analysis type is selected
+        if (!analysisType) {
+            document.getElementById('output').textContent = 'Please select an analysis type before running the script.';
+            return;
+        }
+
+        // Clear the output area
+        document.getElementById('output').textContent = '';
+
+        // Send both companyId and analysisType to the server
+        fetch('/runPythonScript', {
+            method: 'POST',
+            body: JSON.stringify({ companyId, analysisType, timeframe: selectedTimeframe}),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to execute script. Please try again.');
+                }
+                return response.text();
+            })
+            .then(data => {
+                document.getElementById('output').textContent = data; // Display the response in the output area
+            })
+            .catch(error => {
+                document.getElementById('output').textContent = 'Error: ' + error; // Display the error
+            });
+    };
+
+    document.getElementById('analysisType').addEventListener('change', function () {
+        const analysisType = this.value;
+        const timeframeDropdown = document.getElementById('timeframe');
+
+        if (analysisType === 'technical') {
+            timeframeDropdown.classList.remove('d-none'); // Show the dropdown
+        } else {
+            timeframeDropdown.classList.add('d-none'); // Hide the dropdown
+            timeframeDropdown.value = ''; // Reset the dropdown selection
+        }
+    });
+
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
