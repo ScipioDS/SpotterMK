@@ -296,7 +296,7 @@
             })
             .catch(error => {
                 console.error('Error predicting price:', error);
-                predictionMessage.textContent = 'An error occurred while predicting the price.';
+                predictionMessage.textContent = 'Not enough recent data for prediction.';
                 predictionMessage.classList.add('error');
                 predictionMessage.classList.remove('success');
             });
@@ -409,6 +409,9 @@
 
         // Clear the output area
         document.getElementById('output').textContent = '';
+
+        // Display the waiting message
+        document.getElementById('output').textContent = 'The result is loading ...';
 
         // Send both companyId and analysisType to the server
         fetch('/runPythonScript', {
