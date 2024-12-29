@@ -12,6 +12,8 @@ import logging
 import seaborn as sns
 import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping
+from tensorflow.python.ops.losses.losses_impl import mean_squared_error
+from tensorflow.python.ops.metrics_impl import root_mean_squared_error
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -102,7 +104,9 @@ async def predict_next_month_price_endpoint(historical_data: HistoricalData):
 
         # Evaluate model
         r2 = r2_score(test_y, pred_y)
+        mse = mean_squared_error(test_y.values.reshape(-1, 1), pred_y)
         logger.info(f"R2 Score: {r2}")
+        logger.info(f"RMSE: {np.sqrt(mse)}")
 
         # Extract the last sequence for prediction
         logger.info(f"DF: {df.tail(5)}")
@@ -112,7 +116,7 @@ async def predict_next_month_price_endpoint(historical_data: HistoricalData):
             raise ValueError(f"Insufficient data for the last sequence. Expected {lag} rows, got {len(last_sequence)}.")
 
         # Fit and scale with a window-specific scaler
-        window_size = 30  
+        window_size = 30
         recent_window = df.iloc[-window_size:][[f'Lag_{i}' for i in range(lag, 0, -1)]]
         window_scaler = MinMaxScaler(feature_range=(0, 1))
         window_scaler.fit(recent_window)
