@@ -12,7 +12,7 @@
 
 ## АПИ / Микросервисе
 
-prediction_api.py, sentiment_analysis.py, technical_analysis.py се претворени вои одделени компоненти, кои со главната апликација комуницираат преку API.
+prediction_api.py, sentiment_analysis.py, technical_analysis.py се претворени вои одделени компоненти, кои со главната апликација комуницираат преку API (преку новиот RunMicroservice component.
 
 ## Инсталација во облак
 
