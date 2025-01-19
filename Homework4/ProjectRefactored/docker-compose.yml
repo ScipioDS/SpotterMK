@@ -1,0 +1,38 @@
+services:
+  database:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: aleks123
+      POSTGRES_DB: my_database
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./db_dump:/docker-entrypoint-initdb.d
+    ports:
+      - "54323:5432"
+    container_name: database
+    networks:
+      - app_network
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend
+    volumes:
+      - ./scripts:/workspace/app/scripts
+      - ./NameScrape.csv:/workspace/app/files/NameScrape.csv
+    ports:
+      - "9090:8080"
+    environment:
+      - spring.datasource.url=jdbc:postgresql://database:5432/my_database
+      - server.port=8080
+    depends_on:
+      - database
+    networks:
+      - app_network
+volumes:
+  pg-data:
+networks:
+  app_network:
+    driver: bridge
